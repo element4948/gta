@@ -107,7 +107,7 @@ async function init(){
  }catch(e){}
  try{
    let j=await fetch(SECONDARY_URL).then(r=>r.json()),vs=j.vehicles||{};
-   Object.values(vs).forEach(v=>{if(v&&v.name)put(v.name,v.maker||v.manufacturer,v.price_full,v.price_trade,v.venue,"Secondary DB",v.type||"",v.storage||"")});
+   Object.values(vs).forEach(v=>{if(v&&v.name){const pf=Number(v.price_full),pt=Number(v.price_trade);put(v.name,v.maker||v.manufacturer,(Number.isFinite(pf)&&pf>=0)?pf:null,(Number.isFinite(pt)&&pt>=0)?pt:null,v.venue,"Secondary DB",v.type||"",v.storage||"")}});
  }catch(e){}
  Object.entries(embeddedPrices).forEach(([k,v])=>{pm[norm(k)]=v; meta[norm(k)]={shop:"",source:"2026 verified patch"}});
  function similarity(a,b){
@@ -189,7 +189,7 @@ init();
      let st=r[18]||r[6]||r[5]||"Unspecified"; stor.set(st,(stor.get(st)||0)+1);
    });
    document.getElementById("kpiTotal").textContent=rr.length.toLocaleString();
-   document.getElementById("kpiOwned").textContent=owned.toLocaleString();
+   document.getElementById("kpiOwned").textContent=owned.toLocaleString(); document.getElementById("kpiOwned").title="Эзэмшиж буй машинуудын үнэ хүснэгтийн Худалдан авах үнэ баганад харагдана";
    document.getElementById("kpiMissing").textContent=missing.toLocaleString();
    document.getElementById("kpiValue").textContent=money(value);
    const remainingCost=rr.filter(r=>!String(r[7]||"").trim()&&!String(r[9]||"").trim()&&!String(r[10]||"").trim()&&Number(r[13])>0).reduce((a,r)=>a+Number(r[13]),0);
