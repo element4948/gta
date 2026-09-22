@@ -30,7 +30,7 @@ tr.newrow td{background:rgba(255,212,71,.055)}tr.newrow:hover td{background:rgba
 .kpi .n{font-size:27px;font-weight:800;letter-spacing:-.5px}.kpi .l{font-size:12px;color:#9ca8b7;margin-top:5px}
 .chart-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:14px}
 .chart-card{background:#12171d;border:1px solid #2b3440;border-radius:16px;padding:16px}
-.chart-card h3{margin:0 0 14px;font-size:14px}.barrow{display:grid;grid-template-columns:minmax(90px,150px) 1fr 48px;gap:10px;align-items:center;margin:8px 0;font-size:12px}
+.chart-card h3{margin:0 0 14px;font-size:14px}.barrow{display:grid;grid-template-columns:minmax(90px,150px) 1fr minmax(70px,110px);gap:10px;align-items:center;margin:8px 0;font-size:12px}
 .bartrack{height:9px;background:#242c35;border-radius:999px;overflow:hidden}.barfill{height:100%;background:linear-gradient(90deg,#60a5fa,#34d399);border-radius:999px}
 .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.donut{width:145px;height:145px;border-radius:50%;position:relative;background:conic-gradient(#34d399 0 var(--owned),#60a5fa var(--owned) var(--known),#374151 var(--known) 100%)}
 .donut:after{content:"";position:absolute;inset:22px;background:#12171d;border-radius:50%}.donut-center{position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-weight:800;font-size:20px}.legend{font-size:12px;line-height:1.9}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:#34d399}
@@ -48,7 +48,9 @@ tr.newrow td{background:rgba(255,212,71,.055)}tr.newrow:hover td{background:rgba
  </div>
  <div class="chart-grid">
   <div class="chart-card"><h3>Цуглуулгын явц</h3><div class="donut-wrap"><div class="donut" id="progressDonut"><div class="donut-center" id="progressPct">—</div></div><div class="legend" id="progressLegend"></div></div></div>
-  <div class="chart-card"><h3>Төрлөөр</h3><div id="classBars"></div></div>
+  <div class="chart-card"><h3>Эзэмшилтийн төлөв</h3><div id="ownershipBars"></div></div>
+  <div class="chart-card"><h3>Дүр тус бүрийн цуглуулалтын явц</h3><div id="characterBars"></div></div>
+  <div class="chart-card"><h3>Үлдсэн худалдан авалтын зардал — үйлдвэрлэгчээр</h3><div id="remainingCostBars"></div></div>
   </div>
 </section>
 <div class="filters"><input id="q" placeholder="Тээврийн хэрэгсэл, брэнд, гаражаар хайх..."><select id="tag"><option value="">Бүх тээврийн хэрэгсэл</option><option value="NEW">Зөвхөн ШИНЭ</option><option value="EXISTING">Одоо байгаа</option><option value="MISSING MFR">Үйлдвэрлэгчийн жагсаалтад дутуу</option><option value="MASTER MISSING">Үндсэн жагсаалтаас дутуу</option><option value="LATEST MISSING">2026 оны шинээс дутуу</option><option value="DUPLICATE_ONLY">Яг давхардсан (Үйлдвэрлэгч + Тээврийн хэрэгсэл)</option></select>
@@ -171,9 +173,10 @@ init();
 (function(){
  const money=n=>"$"+Math.round(n||0).toLocaleString();
  const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
- function bars(el,data){
+ function bars(el,data,fmt=v=>v){
+   if(!el)return;
    const a=[...data.entries()].filter(([k])=>k).sort((x,y)=>y[1]-x[1]).slice(0,8), max=a[0]?.[1]||1;
-   el.innerHTML=a.map(([k,v])=>`<div class="barrow"><span title="${esc(k)}">${esc(k)}</span><div class="bartrack"><div class="barfill" style="width:${v/max*100}%"></div></div><b>${v}</b></div>`).join("")||"<span>Мэдээлэл алга</span>";
+   el.innerHTML=a.map(([k,v])=>`<div class="barrow"><span title="${esc(k)}">${esc(k)}</span><div class="bartrack"><div class="barfill" style="width:${v/max*100}%"></div></div><b title="${fmt(v)}">${fmt(v)}</b></div>`).join("")||"<span>Мэдээлэл алга</span>";
  }
  function draw(){
    if(!window.rows && typeof rows==="undefined") return;
@@ -182,11 +185,15 @@ init();
    const owned=rr.filter(r=>String(r[7]||"").trim() || String(r[9]||"").trim()).length;
    const missing=rr.filter(r=>!["EXISTING","NEW"].includes(String(r[11]||""))).length;
    const value=rr.reduce((a,r)=>a+(Number(r[13])||0),0);
-   const mfr=new Map(), cls=new Map(), stor=new Map();
+   const mfr=new Map(), cls=new Map(), stor=new Map(), ownership=new Map(), charOwned=new Map(), charTotal=new Map(), remainByMfr=new Map();
    rr.forEach(r=>{
      if(r[0])mfr.set(r[0],(mfr.get(r[0])||0)+1);
      if(r[17])cls.set(r[17],(cls.get(r[17])||0)+1);
      let st=r[18]||r[6]||r[5]||"Unspecified"; stor.set(st,(stor.get(st)||0)+1);
+     const isOwned=!!(String(r[7]||"").trim()||String(r[9]||"").trim()), notReq=!!String(r[10]||"").trim();
+     const label=isOwned?"Эзэмшдэг":notReq?"Шаардлагагүй":"Үлдсэн"; ownership.set(label,(ownership.get(label)||0)+1);
+     const ch=String(r[4]||"").trim(); if(ch){charTotal.set(ch,(charTotal.get(ch)||0)+1);if(isOwned)charOwned.set(ch,(charOwned.get(ch)||0)+1);}
+     if(!isOwned&&!notReq&&Number(r[13])>0&&r[0])remainByMfr.set(r[0],(remainByMfr.get(r[0])||0)+Number(r[13]));
    });
    document.getElementById("kpiTotal").textContent=rr.length.toLocaleString();
    document.getElementById("kpiOwned").textContent=owned.toLocaleString(); document.getElementById("kpiOwned").title="Эзэмшиж буй машинуудын үнэ хүснэгтийн Худалдан авах үнэ баганад харагдана";
@@ -199,7 +206,10 @@ init();
    const d=document.getElementById("progressDonut"); d.style.setProperty("--owned",op+"%");d.style.setProperty("--known",Math.max(op,kp)+"%");
    document.getElementById("progressPct").textContent=op+"%";
    document.getElementById("progressLegend").innerHTML=`<div><i class="dot"></i>Эзэмшиж буй: <b>${owned}</b></div><div><i class="dot" style="background:#60a5fa"></i>Бүртгэлтэй: <b>${rr.length-missing}</b></div><div><i class="dot" style="background:#374151"></i>Дутуу: <b>${missing}</b></div>`;
-   bars(document.getElementById("classBars"),cls);
+   bars(document.getElementById("ownershipBars"),ownership);
+   const charPct=new Map(); charTotal.forEach((v,k)=>charPct.set(k,Math.round((charOwned.get(k)||0)/v*100)));
+   bars(document.getElementById("characterBars"),charPct,v=>v+"%");
+   bars(document.getElementById("remainingCostBars"),remainByMfr,v=>"$"+Math.round(v).toLocaleString());
  }
  const t=setInterval(()=>{try{if((typeof rows!=="undefined"&&rows.length)){clearInterval(t);draw()}}catch(e){}},200);
 })();
