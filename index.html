@@ -13,6 +13,16 @@ tr.newrow td{background:rgba(255,212,71,.055)}tr.newrow:hover td{background:rgba
 .new{background:#554713;color:#ffe56f;border:1px solid #8c7624}.missing{background:#55212a;color:#ff9aaa;border:1px solid #8e3948}.old{background:#24303b;color:#aab6c2}.money{font-weight:700;color:var(--green);white-space:nowrap}.trade{color:var(--blue)}.na{color:#687481}.date{white-space:nowrap;color:#c7d0d9}
 .note{font-size:12px;color:var(--muted);margin:9px 2px 12px}@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.filters{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
 </style>
+<style id="responsive-fix">
+.wrap{max-width:1600px;width:100%;padding:20px}
+.kpi-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:10px!important}
+.kpi{min-width:0;padding:14px!important}.kpi .n{font-size:clamp(18px,2vw,27px)!important;overflow-wrap:anywhere}.kpi .l{line-height:1.35}
+.chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.filters{grid-template-columns:minmax(220px,2fr) repeat(6,minmax(120px,1fr)) auto!important}
+.tablebox{width:100%;max-width:100%;-webkit-overflow-scrolling:touch}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr)!important}.filters{grid-template-columns:repeat(3,1fr)!important}.filters #q{grid-column:span 2}.chart-grid{grid-template-columns:1fr!important}}
+@media(max-width:650px){.wrap{padding:10px}h1{font-size:23px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpi{padding:11px!important}.filters{grid-template-columns:1fr 1fr!important;padding:9px}.filters #q{grid-column:1/-1}.filters button{grid-column:1/-1}.chart-card{padding:12px}.donut{width:120px!important;height:120px!important}.barrow{grid-template-columns:minmax(75px,110px) 1fr 36px!important;gap:6px!important}table{font-size:12px;min-width:1450px}th,td{padding:8px 7px!important}}
+</style>
 <style id="dashboard-v2">
 .dashboard-v2{margin:18px 0 22px}
 .kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;margin-bottom:14px}
@@ -39,11 +49,8 @@ tr.newrow td{background:rgba(255,212,71,.055)}tr.newrow:hover td{background:rgba
  <div class="chart-grid">
   <div class="chart-card"><h3>Цуглуулгын явц</h3><div class="donut-wrap"><div class="donut" id="progressDonut"><div class="donut-center" id="progressPct">—</div></div><div class="legend" id="progressLegend"></div></div></div>
   <div class="chart-card"><h3>Төрлөөр</h3><div id="classBars"></div></div>
-  <div class="chart-card"><h3>Үйлдвэрлэгчээр</h3><div id="mfrBars"></div></div>
-  <div class="chart-card"><h3>Хадгалалтын тойм</h3><div id="storageBars"></div></div>
- </div>
+  </div>
 </section>
-<div class="stats"><div class="stat"><b id="total">0</b><span>Харагдаж буй</span></div><div class="stat"><b id="newCount">0</b><span>Шинээр нэмэгдсэн</span></div><div class="stat"><b id="missingMfrCount">0</b><span>Цуглуулах үлдсэн</span></div><div class="stat"><b id="priced">0</b><span>Үнэ таарсан</span></div><div class="stat"><b id="value">$0</b><span>Харагдаж буй нийт үнэ</span></div><div class="stat"><b id="ownedValue">$0</b><span>Эзэмшиж буй нийт үнэ</span></div></div>
 <div class="filters"><input id="q" placeholder="Тээврийн хэрэгсэл, брэнд, гаражаар хайх..."><select id="tag"><option value="">Бүх тээврийн хэрэгсэл</option><option value="NEW">Зөвхөн ШИНЭ</option><option value="EXISTING">Одоо байгаа</option><option value="MISSING MFR">Үйлдвэрлэгчийн жагсаалтад дутуу</option><option value="MASTER MISSING">Үндсэн жагсаалтаас дутуу</option><option value="LATEST MISSING">2026 оны шинээс дутуу</option><option value="DUPLICATE_ONLY">Яг давхардсан (Үйлдвэрлэгч + Тээврийн хэрэгсэл)</option></select>
 <select id="character"><option value="">Бүх дүр</option></select><select id="manufacturer"><option value="">Бүх үйлдвэрлэгч</option></select><select id="garage"><option value="">Бүх гараж</option></select>
 <select id="status"><option value="">Бүх төлөв</option><option>Owned</option><option>Special / Verify</option><option>Not Owned</option><option>Not Required</option></select>
@@ -156,8 +163,7 @@ function render(){
  return(!q||r.join(" ").toLowerCase().includes(q))&&(!tag || (tag==="DUPLICATE_ONLY" ? (window.__duplicateNames||new Set()).has(norm(r[0])+"||"+norm(r[2])) : r[11]===tag))&&(!ch||r[4]===ch)&&(!mf||r[0]===mf)&&(!ga||r[6]===ga)&&(!st||status(r)===st)&&ok});
  f.sort((a,b)=>{let A=a[sortCol],B=b[sortCol];if(sortCol>=13)return((A??Infinity)-(B??Infinity))*(sortAsc?1:-1);return String(A||"").localeCompare(String(B||""),undefined,{numeric:true})*(sortAsc?1:-1)});
  $("body").innerHTML=f.map(r=>`<tr class="${(r[11]==='EXISTING'?'':r[11]==='NEW'?'newrow':'missingrow')}">`+DISPLAY.map(c=>{let i=c.i,v=r[i];if(i===11)return `<td><span class="badge ${v==='NEW'?'new':v==='EXISTING'?'old':'missing'}">${v}</span></td>`;if(i===12)return `<td class="date">${v||'<span class="na">—</span>'}</td>`;if(i===13)return `<td class="${v==null?'na':'money'}">${v==null?"Бүртгэлгүй":money(v)}</td>`;if(i===14)return `<td class="trade">${v==null?'<span class="na">—</span>':money(v)}</td>`;if(i===15)return `<td>${v||'<span class="na">Бүртгэлгүй / худалдан авах боломжгүй</span>'}</td>`;if(i===16)return `<td><span class="badge ${v==='Exact'?'old':v==='Fuzzy'?'new':'old'}">${v}</span></td>`;return `<td>${v||'<span class="na">—</span>'}</td>`}).join("")+"</tr>").join("");
- $("total").textContent=f.length;$("newCount").textContent=f.filter(r=>r[11]==="NEW").length;$("missingMfrCount").textContent=f.filter(r=>!["EXISTING","NEW"].includes(r[11])).length;$("priced").textContent=f.filter(r=>r[13]!=null).length;
- $("value").textContent=money(f.reduce((s,r)=>s+(r[13]||0),0));$("ownedValue").textContent=money(f.filter(r=>r[7]).reduce((s,r)=>s+(r[13]||0),0));
+ 
 }
 init();
 </script>
@@ -193,7 +199,7 @@ init();
    const d=document.getElementById("progressDonut"); d.style.setProperty("--owned",op+"%");d.style.setProperty("--known",Math.max(op,kp)+"%");
    document.getElementById("progressPct").textContent=op+"%";
    document.getElementById("progressLegend").innerHTML=`<div><i class="dot"></i>Эзэмшиж буй: <b>${owned}</b></div><div><i class="dot" style="background:#60a5fa"></i>Бүртгэлтэй: <b>${rr.length-missing}</b></div><div><i class="dot" style="background:#374151"></i>Дутуу: <b>${missing}</b></div>`;
-   bars(document.getElementById("classBars"),cls);bars(document.getElementById("mfrBars"),mfr);bars(document.getElementById("storageBars"),stor);
+   bars(document.getElementById("classBars"),cls);
  }
  const t=setInterval(()=>{try{if((typeof rows!=="undefined"&&rows.length)){clearInterval(t);draw()}}catch(e){}},200);
 })();
