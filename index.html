@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GTA V Тээврийн хэрэгслийн цуглуулга</title><style>
+<title>GTA V цуглуулга</title><style>
 :root{--bg:#090c10;--panel:#12171d;--line:#29323c;--text:#f4f6f8;--muted:#8d98a4;--yellow:#ffd447;--green:#69e39d;--blue:#76b7ff}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#080a0d,#111922);color:var(--text);font-family:Inter,system-ui,Arial}
 .wrap{max-width:1800px;margin:auto;padding:26px}h1{margin:0;font-size:30px}.sub{color:var(--muted);margin:6px 0 18px}
@@ -27,19 +27,13 @@ tr.newrow td{background:rgba(255,212,71,.055)}tr.newrow:hover td{background:rgba
 @media(max-width:950px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.chart-grid{grid-template-columns:1fr}}
 </style>
 </head><body><div class="wrap">
-<h1>GTA V Тээврийн хэрэгслийн цуглуулга</h1><div class="sub">Шинэчлэгдсэн цуглуулгын бүртгэл — шинээр нэмэгдсэн тээврийн хэрэгслийг <span class="badge new">NEW</span></div>
-<div style="margin:0 0 14px;padding:12px 14px;border:1px solid #8c7624;border-radius:12px;background:#211d0d;color:#ffe98b;font-size:13px">
-<b>Шалгалтын төлөв:</b> Manufacturer names cleaned. Latest 2025–2026 prices surfaced by the September 2026 reference database are overridden with verified values. “Бүртгэлгүй” / “Unmatched” rows are not claimed as price-verified.
-</div>
-<div style="margin:0 0 14px;padding:10px 14px;border:1px solid #334155;border-radius:12px;background:#111827;font-size:13px"><b>Яг давхардлыг шүүх:</b> Collection Tag → <b>Яг давхардсан (Үйлдвэрлэгч + Тээврийн хэрэгсэл)</b>. Same model name from different manufacturers is not treated as a duplicate.</div><div style="margin:0 0 14px;padding:12px 14px;border:1px solid #2f6f4e;border-radius:12px;background:#102018;font-size:13px">
-<b>ХАМРАХ ХҮРЭЭ:</b> Cars, motorcycles, bicycles, planes, helicopters, boats/watercraft, military, emergency, commercial, industrial and special vehicles are included. Master merging now uses <b>Manufacturer + Vehicle</b>, so same-named vehicles from different manufacturers are not collapsed. “Худалдан авах үнэ бүртгэгдээгүй” means the vehicle has no normal purchase price in the current source (for example, a claim/reward/acquisition-only vehicle); it is not treated as $0.
-</div>
+<h1>GTA V цуглуулга</h1>
 <section class="dashboard-v2">
  <div class="kpi-grid">
   <div class="kpi"><div class="n" id="kpiTotal">—</div><div class="l">Нийт тээврийн хэрэгсэл</div></div>
   <div class="kpi"><div class="n" id="kpiOwned">—</div><div class="l">Эзэмшиж буй / баталгаажсан</div></div>
   <div class="kpi"><div class="n" id="kpiMissing">—</div><div class="l">Цуглуулах шаардлагатай</div></div>
-  <div class="kpi"><div class="n" id="kpiValue">—</div><div class="l">Бүртгэлтэй нийт үнэ</div></div>
+  <div class="kpi"><div class="n" id="kpiValue">—</div><div class="l">Бүртгэлтэй нийт үнэ</div></div><div class="kpi"><div class="n" id="kpiRemainingCost">—</div><div class="l">Үлдсэн машинуудыг авахад хэрэгтэй</div></div>
   <div class="kpi"><div class="n" id="kpiMfr">—</div><div class="l">Үйлдвэрлэгч</div></div>
  </div>
  <div class="chart-grid">
@@ -192,6 +186,8 @@ init();
    document.getElementById("kpiOwned").textContent=owned.toLocaleString();
    document.getElementById("kpiMissing").textContent=missing.toLocaleString();
    document.getElementById("kpiValue").textContent=money(value);
+   const remainingCost=rr.filter(r=>!String(r[7]||"").trim()&&!String(r[9]||"").trim()&&!String(r[10]||"").trim()&&Number(r[13])>0).reduce((a,r)=>a+Number(r[13]),0);
+   document.getElementById("kpiRemainingCost").textContent=money(remainingCost);
    document.getElementById("kpiMfr").textContent=mfr.size.toLocaleString();
    const op=rr.length?Math.round(owned/rr.length*100):0, kp=rr.length?Math.round((rr.length-missing)/rr.length*100):0;
    const d=document.getElementById("progressDonut"); d.style.setProperty("--owned",op+"%");d.style.setProperty("--known",Math.max(op,kp)+"%");
